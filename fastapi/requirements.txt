@@ -1,0 +1,10 @@
+fastapi[standard]>=0.112.0,<0.113.0
+python-docx==1.1.2
+boto3
+sqlalchemy
+psycopg2-binary
+minio
+langchain
+langchain_aws
+langchain-anthropic
+itsdangerous==2.2.0
