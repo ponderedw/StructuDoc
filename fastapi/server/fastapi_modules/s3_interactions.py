@@ -6,6 +6,8 @@ from fastapi_modules.helper.helper_functions import \
     help_upload_source_file_to_s3, \
     help_upload_parsed_source_file_to_s3, help_upload_extracted_images_to_s3
 import json
+import base64
+import re
 
 
 chat_router = APIRouter()
@@ -17,6 +19,20 @@ def upload_metadata_json(file_key, metadata_file_key):
     metadata = {'source_file': file_key}
     s3_handler.put_object(metadata_file_key,
                           json.dumps(metadata).encode('utf-8'))
+
+
+def get_markdown_with_images_helper(markdown, images):
+    def replacer(match):
+        src = match.group(1)
+        filename = src.split("/")[-1]
+        if filename in images:
+            mime = f"image/{filename.split('.')[1]}"
+            b64 = images[filename].decode("utf-8")
+            return f'<img src="data:{mime};base64,{b64}" />'
+        else:
+            return match.group(0)
+    pattern = r'<img\s+[^>]*src=["\']([^"\']+)["\'][^>]*>'
+    return re.sub(pattern, replacer, markdown.decode("utf-8"))
 
 
 @chat_router.post("/upload_source_file_to_s3")
@@ -63,3 +79,69 @@ async def get_all_the_folders():
         'folder_name': f.rsplit('/', 1)[1]
     } for f in all_the_files]
     return all_the_files
+
+
+@chat_router.get("/get_all_the_images")
+async def get_all_the_images(folder_path: str):
+    images_paths = s3_handler.list_objects(prefix=f'{folder_path}/images/',
+                                           recursive=True)
+    images_bytes = {}
+    for image_path in images_paths:
+        images_bytes[image_path.split('/')[-1]] = \
+            base64.b64encode(s3_handler.get_object_bytes(image_path))
+    return images_bytes
+
+
+@chat_router.get("/get_markdown")
+async def get_markdown(folder_path: str):
+    markdown_bytes = \
+        s3_handler.get_object_bytes(f'{folder_path}/parsed_file.md')
+    return markdown_bytes
+
+
+@chat_router.get("/get_markdown_with_images")
+async def get_markdown_with_images(folder_path: str):
+    markdown_bytes = \
+        s3_handler.get_object_bytes(f'{folder_path}/parsed_file.md')
+    images_paths = s3_handler.list_objects(prefix=f'{folder_path}/images/',
+                                           recursive=True)
+    images_bytes = {}
+    for image_path in images_paths:
+        images_bytes[image_path.split('/')[-1]] = \
+            base64.b64encode(s3_handler.get_object_bytes(image_path))
+    markdown_with_images = get_markdown_with_images_helper(markdown_bytes,
+                                                           images_bytes)
+    print(markdown_with_images)
+    return markdown_with_images
+
+
+@chat_router.get("/get_images_explanations_paths")
+async def get_images_explanations_paths(folder_path: str):
+    images_descriptions_paths = s3_handler.list_objects(
+        prefix=f'{folder_path}/images_descriptions/',
+        recursive=True)
+    return [f.split('/')[-1] for f in images_descriptions_paths]
+
+
+@chat_router.get("/get_images_explanation")
+async def get_images_explanation(folder_path: str, description_path: str):
+    description_json = \
+        s3_handler.get_object_bytes(
+            f'{folder_path}/images_descriptions/{description_path}')
+    return description_json
+
+
+@chat_router.get("/receive_json_parsings_paths")
+async def receive_json_parsings_paths(folder_path: str):
+    json_parsings_paths = s3_handler.list_objects(
+        prefix=f'{folder_path}/parsed_document/',
+        recursive=True)
+    return [f.split('/')[-1] for f in json_parsings_paths]
+
+
+@chat_router.get("/receive_json_parsings")
+async def receive_json_parsings(folder_path: str, parsing_path: str):
+    description_json = \
+        s3_handler.get_object_bytes(
+            f'{folder_path}/parsed_document/{parsing_path}')
+    return description_json

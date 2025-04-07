@@ -71,3 +71,12 @@ class S3Handler:
                         }
             self.s3_client.fget_object(**parameters)
             return file_name
+
+    def get_object_bytes(self, object_key):
+        if self.s3_type == 'minio':
+            parameters = {
+                    'bucket_name': self.s3_bucket,
+                    'object_name': object_key
+                    }
+            response = self.s3_client.get_object(**parameters)
+            return response.read()

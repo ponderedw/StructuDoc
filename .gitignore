@@ -14,3 +14,4 @@ pgdata
 minio-data
 temp_file.*
 .DS_Store
+.sesskey
