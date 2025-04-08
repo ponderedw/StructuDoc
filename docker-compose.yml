@@ -18,15 +18,11 @@ services:
 
   minio:
     image: minio/minio
+    env_file:
+      - .env
     container_name: minio
     volumes:
       - ./minio-data:/data
-    environment:
-      - MINIO_ROOT_USER=admin
-      - MINIO_ROOT_PASSWORD=password
-      - MINIO_DOMAIN=minio
-      - MINIO_REGION_NAME=us-east-1
-      - MINIO_REGION=us-east-1
     networks:
       data-lake-network:
     ports:
@@ -54,6 +50,20 @@ services:
       /usr/bin/mc mb minio/source-bucket;
       /usr/bin/mc policy set public minio/source_bucket;
       "
+
+  streamlit:
+    container_name: streamlit
+    networks:
+      data-lake-network:
+    env_file:
+      - .env
+    ports:
+      - "8501:8501"
+    build:
+      context: .
+      dockerfile: streamlit/.Dockerfile
+    volumes:
+      - ./streamlit:/app/streamlit
 
 
 networks:

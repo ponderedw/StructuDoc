@@ -1,18 +1,27 @@
 import os
 
 
+main_folder_prefix = 'structudoc'
+
+
+def get_folder_path(filename, path):
+    folder_name = main_folder_prefix + '_' +\
+        filename.split('/')[-1].split('.')[0]
+    if path:
+        return path + '/' + folder_name
+    return folder_name
+
+
 def help_upload_source_file_to_s3(s3_handler, file_name, file_content, path):
     folder_name, extension = file_name.split('.')
-    file_key = f'structudoc_{folder_name}/{folder_name}.{extension}'
-    if path:
-        folder = f'{path}/structudoc_{folder_name}'
-        file_key = f'{folder}/{folder_name}.{extension}'
+    main_folder = get_folder_path(file_name, path)
+    file_key = f'{main_folder}/{folder_name}.{extension}'
     s3_handler.put_object(key=file_key,
                           file_bytes=file_content)
     temp_file_path = f'temp_file.{extension}'
     with open(temp_file_path, 'wb') as temp_file:
         temp_file.write(file_content)
-    return (temp_file_path, folder, file_key)
+    return (temp_file_path, main_folder, file_key)
 
 
 def help_upload_parsed_source_file_to_s3(s3_handler, document_parse, folder):

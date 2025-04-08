@@ -1,3 +1,7 @@
+import requests
+import os
+
+
 def insert_path(tree, parts, path):
     node = tree
     for idx, part in enumerate(parts):
@@ -19,3 +23,39 @@ def build_tree(paths):
         parts = path.strip().split("/")
         insert_path(tree, parts, path)
     return tree
+
+
+def get_from_backend(backend_method: str,
+                     **kwargs):
+    response = requests.get(
+        f'http://fastapi:8080/{backend_method}',
+        headers={"x-access-token":
+                 os.environ.get('FAST_API_ACCESS_SECRET_TOKEN')},
+        params=kwargs)
+    response.raise_for_status()
+    data = response.json()
+    return data
+
+
+def get_from_backend_streaming(backend_method: str,
+                               **kwargs):
+    with requests.get(
+        f'http://fastapi:8080/{backend_method}',
+        stream=True,
+        headers={"x-access-token":
+                 os.environ.get('FAST_API_ACCESS_SECRET_TOKEN')},
+        **kwargs
+         ) as response:
+        for chunk in response.iter_content(chunk_size=1024):
+            if chunk:
+                parsed_chunk = str(chunk, encoding="utf-8")
+                yield parsed_chunk
+
+
+def post_to_backend(backend_method: str,
+                    **kwargs):
+    response = requests.post(f'http://fastapi:8080/{backend_method}',
+                             stream=True, **kwargs)
+    response.raise_for_status()
+    data = response.json()
+    return data

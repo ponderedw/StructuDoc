@@ -4,7 +4,8 @@ from include.s3_handler import S3Handler
 from include.document_parsing import DocumentParse
 from fastapi_modules.helper.helper_functions import \
     help_upload_source_file_to_s3, \
-    help_upload_parsed_source_file_to_s3, help_upload_extracted_images_to_s3
+    help_upload_parsed_source_file_to_s3, help_upload_extracted_images_to_s3, \
+    main_folder_prefix, get_folder_path
 import json
 import base64
 import re
@@ -58,8 +59,8 @@ async def parse_s3_path(path: str):
                     local_filename='temp_file')
     document_parse = DocumentParse(source_document_local_path=temp_file_path,
                                    image_folder='images')
-    folder = path.rsplit('/', 1)[0] \
-        + '/structudoc_' + path.split('/')[-1].split('.')[0]
+    folder = get_folder_path(path.split('/')[-1].split('.')[0],
+                             path.rsplit('/', 1)[0])
     upload_metadata_json(path, folder + '/metadata.json')
     help_upload_parsed_source_file_to_s3(s3_handler, document_parse, folder)
     help_upload_extracted_images_to_s3(s3_handler, document_parse, folder)
@@ -69,14 +70,14 @@ async def parse_s3_path(path: str):
 @chat_router.get("/get_all_the_folders")
 async def get_all_the_folders():
     all_the_files = s3_handler.list_objects(recursive=True)
-    print(all_the_files)
     all_the_files = [f.rsplit('/', 1)[0]
                      for f in all_the_files
-                     if f.split('/')[-2].startswith("structudoc_")]
+                     if f.split('/')[-2].startswith(f"{main_folder_prefix}_")]
     all_the_files = list(set(all_the_files))
+    print(all_the_files)
     all_the_files = [{
         'folder_path': f,
-        'folder_name': f.rsplit('/', 1)[1]
+        'folder_name': f.rsplit('/', 1)[-1]
     } for f in all_the_files]
     return all_the_files
 
@@ -111,7 +112,6 @@ async def get_markdown_with_images(folder_path: str):
             base64.b64encode(s3_handler.get_object_bytes(image_path))
     markdown_with_images = get_markdown_with_images_helper(markdown_bytes,
                                                            images_bytes)
-    print(markdown_with_images)
     return markdown_with_images
 
 
@@ -145,3 +145,12 @@ async def receive_json_parsings(folder_path: str, parsing_path: str):
         s3_handler.get_object_bytes(
             f'{folder_path}/parsed_document/{parsing_path}')
     return description_json
+
+
+@chat_router.get("/is_folder_exists")
+async def is_folder_exists(file_name: str, path: Optional[str] = None):
+    folder_path = get_folder_path(file_name, path)
+    files_in_folder = s3_handler.list_objects(prefix=f'{folder_path}/',
+                                              recursive=True)
+    return {'is_exist': len(files_in_folder) > 0,
+            'folder_path': folder_path}
