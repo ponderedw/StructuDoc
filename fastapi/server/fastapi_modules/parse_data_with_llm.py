@@ -136,7 +136,7 @@ async def load_parsed_file(prompt: str, folder_name: str,
         folder=folder_name,
         images_description_path=images_description_path,
         streaming=False)
-    start_index = llm_output.find('[')
+    start_index = llm_output.find('{')
     json_str_llm_output = llm_output[start_index:]
     json_llm_output = json.loads(json_str_llm_output)
     index = get_last_index_from_s3(folder_name, '/parsed_document/')

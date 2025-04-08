@@ -1,0 +1,1 @@
+Return a JSON file. Start your output with '{'. Parse the content and return a JSON file with all values properly formatted as JSON.
