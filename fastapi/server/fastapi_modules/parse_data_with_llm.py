@@ -19,13 +19,6 @@ def send_image_to_llm(prompt: str, image_path: str, streaming: bool = True):
 
 def get_file_with_image_descriptions(folder: str,
                                      images_description_path: str = None):
-    images_description_key = \
-        f'{folder}/images_descriptions/{images_description_path}'
-    temp_file_path = 'temp_file.json'
-    s3_handler.get_object(images_description_key,
-                          temp_file_path)
-    with open(temp_file_path, "r") as f:
-        images_description = json.load(f)
     temp_file_path = s3_handler.get_object(folder + '/parsed_file.md',
                                            local_filename='temp_file')
     with open(temp_file_path, 'r') as f:
@@ -33,6 +26,13 @@ def get_file_with_image_descriptions(folder: str,
     user_prompt = f'''File Name: {folder}
     {source_file_md}'''
     if images_description_path:
+        images_description_key = \
+            f'{folder}/images_descriptions/{images_description_path}'
+        temp_file_path = 'temp_file.json'
+        s3_handler.get_object(images_description_key,
+                              temp_file_path)
+        with open(temp_file_path, "r") as f:
+            images_description = json.load(f)
         user_prompt += \
             f"\nThese are the images: {images_description['images']}"
     return user_prompt
@@ -74,10 +74,14 @@ def send_texts_to_llm(prompt: str, folders: List[str],
                       streaming: bool = True):
     user_prompts = ''
     for folder in folders:
-        images_description_path = get_last_file_path(
-            folder,
-            '/images_descriptions/',
-            'images_description_{index}.json')
+        try:
+            images_description_path = get_last_file_path(
+                folder,
+                '/images_descriptions/',
+                'images_description_{index}.json')
+        except Exception as e:
+            print(e)
+            images_description_path = None
         user_prompt = get_file_with_image_descriptions(
             folder,
             images_description_path)
@@ -114,9 +118,13 @@ async def load_images_descriptions(prompt: str, folder_name: str):
 async def get_parsed_file(prompt: str, folder_name: str,
                           images_description_path: Optional[str] = None):
     if not images_description_path:
-        images_description_path = get_last_file_path(
-            folder_name, '/images_descriptions/',
-            'images_description_{index}.json')
+        try:
+            images_description_path = get_last_file_path(
+                folder_name, '/images_descriptions/',
+                'images_description_{index}.json')
+        except Exception as e:
+            print(e)
+            images_description_path = None
     return StreamingResponse(
         send_text_to_llm(prompt=prompt,
                          folder=folder_name,
@@ -128,9 +136,13 @@ async def get_parsed_file(prompt: str, folder_name: str,
 async def load_parsed_file(prompt: str, folder_name: str,
                            images_description_path: Optional[str] = None):
     if not images_description_path:
-        images_description_path = get_last_file_path(
-            folder_name, '/images_descriptions/',
-            'images_description_{index}.json')
+        try:
+            images_description_path = get_last_file_path(
+                folder_name, '/images_descriptions/',
+                'images_description_{index}.json')
+        except Exception as e:
+            print(e)
+            images_description_path = None
     llm_output = send_text_to_llm(
         prompt=prompt,
         folder=folder_name,

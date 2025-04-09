@@ -38,18 +38,18 @@ if submitted:
                         folder_path=folder)
                 if not images_decriptions_paths:
                     st.write("There aren't any images descriptions yet")
-                else:
-                    backend_method = 'parse_data_with_llm/get_parsed_file'
-                    parsed_json_stream = st.write_stream(
-                        get_from_backend_streaming(
-                            backend_method=backend_method,
-                            params={
-                                'prompt': prompt,
-                                'folder_name': folder
-                            }
-                        )
-                                    )
-                    st.json(json.loads(parsed_json_stream))
+                backend_method = 'parse_data_with_llm/get_parsed_file'
+                parsed_json_stream = st.write_stream(
+                    get_from_backend_streaming(
+                        backend_method=backend_method,
+                        params={
+                            'prompt': prompt,
+                            'folder_name': folder
+                        }
+                    )
+                                )
+                st.json(json.loads(parsed_json_stream[
+                    parsed_json_stream.find('{'):]))
     else:
         st.warning('Please Choose At Least One Folder')
 
@@ -64,12 +64,11 @@ if submitted_save:
                     folder_path=folder)
             if not images_decriptions_paths:
                 st.write("There aren't any images descriptions yet")
-            else:
-                backend_method = 'parse_data_with_llm/load_parsed_file'
-                data = post_to_backend(backend_method=backend_method,
-                                       params={'prompt': prompt,
-                                               'folder_name': folder})
-                st.write(f'Load is finished for {folder}')
-                st.write(data)
+            backend_method = 'parse_data_with_llm/load_parsed_file'
+            data = post_to_backend(backend_method=backend_method,
+                                   params={'prompt': prompt,
+                                           'folder_name': folder})
+            st.write(f'Load is finished for {folder}')
+            st.write(data)
     else:
         st.warning('Please Choose At Least One Folder')

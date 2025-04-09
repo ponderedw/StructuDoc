@@ -74,7 +74,6 @@ async def get_all_the_folders():
                      for f in all_the_files
                      if f.split('/')[-2].startswith(f"{main_folder_prefix}_")]
     all_the_files = list(set(all_the_files))
-    print(all_the_files)
     all_the_files = [{
         'folder_path': f,
         'folder_name': f.rsplit('/', 1)[-1]
@@ -154,3 +153,27 @@ async def is_folder_exists(file_name: str, path: Optional[str] = None):
                                               recursive=True)
     return {'is_exist': len(files_in_folder) > 0,
             'folder_path': folder_path}
+
+
+@chat_router.get("/get_all_the_common_schemas")
+async def get_all_the_common_schemas(folders: Optional[str] = None):
+    common_schemas_paths = s3_handler.list_objects(prefix='common_schemas/',
+                                                   recursive=True)
+    common_schemas = []
+    folders_list = None if not folders else folders.split(',')
+    for common_schema_path in common_schemas_paths:
+        json_bytes = s3_handler.get_object_bytes(object_key=common_schema_path)
+        json_str = json_bytes.decode('utf-8')
+        if folders_list:
+            if bool(set(json.loads(json_str)['files']) & set(folders_list)):
+                common_schemas.append(common_schema_path.rsplit('/')[-1])
+        else:
+            common_schemas.append(common_schema_path.rsplit('/')[-1])
+    return common_schemas
+
+
+@chat_router.get("/get_common_schema_json")
+async def get_common_schema_json(common_schema_path: str):
+    json_bytes = s3_handler.get_object_bytes(
+        object_key=f'common_schemas/common_schemas_jsons/{common_schema_path}')
+    return json.loads(json_bytes.decode('utf-8'))

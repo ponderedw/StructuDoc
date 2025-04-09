@@ -1,0 +1,14 @@
+You will receive multiple documents separated by the delimiter:
+----------
+
+Return your response strictly as a JSON object, without any additional text before or after. Start the response with "{".
+Analyze these documents to identify a common JSON schema that represents their structure.
+Don't actually parse the data, only schema. Return key: "<definition>". So, for example, not "contentTitle": "Somename", but "contentTitle": "<Title of the document, including the main title>".
+It must be only SCHEMA!!!, without actual data!!! Find common keys between documents and explain each one of them as a value of that key (don't put an actual values).
+The expected schema is as follows:
+
+{
+    "<Key1>": "<Value1>",
+    "<Key2>": "<Value2>",
+    "...": "...",
+}
