@@ -1,5 +1,24 @@
 import requests
 import os
+import streamlit as st
+
+
+def remove_watermark():
+    st.markdown("""
+            <style>
+                .stAppDeployButton {display:none; visibility: hidden;}
+            </style>
+        """, unsafe_allow_html=True)
+    css = '''
+    <style>
+        [data-testid="stSidebar"]{
+            min-width: 100px;
+            max-width: 1200px;
+            default-width: 600px;
+        }
+    </style>
+    '''
+    st.markdown(css, unsafe_allow_html=True)
 
 
 def insert_path(tree, parts, path):

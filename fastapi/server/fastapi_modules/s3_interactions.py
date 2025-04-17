@@ -36,6 +36,10 @@ def get_markdown_with_images_helper(markdown, images):
     return re.sub(pattern, replacer, markdown.decode("utf-8"))
 
 
+def has_valid_extension(key, extensions):
+    return any(key.lower().endswith(ext) for ext in extensions)
+
+
 @chat_router.post("/upload_source_file_to_s3")
 async def upload_source_file_to_s3(file: Annotated[UploadFile, File()],
                                    path: Optional[str] = None):
@@ -60,7 +64,8 @@ async def parse_s3_path(path: str):
     document_parse = DocumentParse(source_document_local_path=temp_file_path,
                                    image_folder='images')
     folder = get_folder_path(path.split('/')[-1].split('.')[0],
-                             path.rsplit('/', 1)[0])
+                             path.rsplit('/', 1)[0] if '/' in path
+                             else '')
     upload_metadata_json(path, folder + '/metadata.json')
     help_upload_parsed_source_file_to_s3(s3_handler, document_parse, folder)
     help_upload_extracted_images_to_s3(s3_handler, document_parse, folder)
@@ -72,7 +77,8 @@ async def get_all_the_folders():
     all_the_files = s3_handler.list_objects(recursive=True)
     all_the_files = [f.rsplit('/', 1)[0]
                      for f in all_the_files
-                     if f.split('/')[-2].startswith(f"{main_folder_prefix}_")]
+                     if len(f.split('/')) > 1 and
+                     f.split('/')[-2].startswith(f"{main_folder_prefix}_")]
     all_the_files = list(set(all_the_files))
     all_the_files = [{
         'folder_path': f,
@@ -177,3 +183,13 @@ async def get_common_schema_json(common_schema_path: str):
     json_bytes = s3_handler.get_object_bytes(
         object_key=f'common_schemas/common_schemas_jsons/{common_schema_path}')
     return json.loads(json_bytes.decode('utf-8'))
+
+
+@chat_router.get("/get_files_list")
+async def get_files_list(extensions: Optional[str] = None):
+    extensions = extensions.split(',')
+    final_files_list = []
+    files_list = s3_handler.list_objects(recursive=True)
+    final_files_list = [file_path for file_path in files_list
+                        if has_valid_extension(file_path, extensions)]
+    return final_files_list
