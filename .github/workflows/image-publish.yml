@@ -48,7 +48,7 @@ jobs:
           file: base.Dockerfile
           push: true
           tags: hipposysai/base_structudoc:latest,hipposysai/base_structudoc:${{ steps.timestamp.outputs.timestamp }}
-          platform: linux/amd64,linux/arm64
+          platforms: linux/amd64,linux/arm64
 
 
   docker:
@@ -81,4 +81,4 @@ jobs:
           context: .
           push: true
           tags: hipposysai/structudoc:latest,hipposysai/structudoc:${{ steps.timestamp.outputs.timestamp }}
-          platform: linux/amd64,linux/arm64
+          platforms: linux/amd64,linux/arm64
