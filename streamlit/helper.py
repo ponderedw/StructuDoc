@@ -74,6 +74,10 @@ def get_from_backend_streaming(backend_method: str,
 def post_to_backend(backend_method: str,
                     **kwargs):
     response = requests.post(f'http://fastapi:8080/{backend_method}',
+                             headers={
+                                 "x-access-token":
+                                     os.environ.get(
+                                         'FAST_API_ACCESS_SECRET_TOKEN')},
                              stream=True, **kwargs)
     response.raise_for_status()
     data = response.json()
