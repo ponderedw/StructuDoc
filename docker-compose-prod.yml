@@ -9,8 +9,6 @@ services:
     command: ["/app/docker-bootstrap.sh", "backend"]
     networks:
       data-lake-network:
-    volumes:
-      - ./fastapi/:/code
     ports:
       - 8080:8080
     restart: always
@@ -60,8 +58,6 @@ services:
       - .env
     ports:
       - "8501:8501"
-    volumes:
-      - ./streamlit:/app/streamlit
 
 
 networks:
