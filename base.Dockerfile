@@ -24,3 +24,4 @@ RUN pip install --no-cache-dir -r fastapi-requirements.txt \
     && pip install --no-cache-dir -r streamlit-requirements.txt \
     # Clean pip cache
     && pip cache purge
+
