@@ -45,9 +45,10 @@ def has_valid_extension(key, extensions):
 
 @chat_router.post("/upload_source_file_to_s3")
 async def upload_source_file_to_s3(file: Annotated[UploadFile, File()],
-                                   path: Optional[str] = None):
+                                   path: Annotated[str, Form()] = None):
     file_content = await file.read()
     file_name = file.filename
+    print(f'Path Value: {path}')
     temp_file_path, folder, file_key = \
         help_upload_source_file_to_s3(s3_handler, file_name, file_content,
                                       path)
