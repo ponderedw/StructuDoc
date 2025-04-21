@@ -33,8 +33,8 @@ def get_file_with_image_descriptions(folder: str,
         images_description_key = \
             f'{folder}/{images_description_folder}/{images_description_path}'
         temp_file_path = 'temp_file.json'
-        s3_handler.get_object(images_description_key,
-                              temp_file_path)
+        temp_file_path = s3_handler.get_object(images_description_key,
+                                               temp_file_path)
         with open(temp_file_path, "r") as f:
             images_description = json.load(f)
         user_prompt += \
