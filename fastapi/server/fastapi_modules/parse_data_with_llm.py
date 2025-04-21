@@ -4,6 +4,10 @@ from fastapi import APIRouter
 from include.llm_functions import LLMHelper
 import json
 from typing import Optional, List
+from fastapi_modules.helper.helper_functions import get_last_index_from_s3, \
+    get_last_file_path
+from fastapi_modules.common_values import images_description_file_temp, \
+    images_description_folder
 
 chat_router = APIRouter()
 
@@ -27,7 +31,7 @@ def get_file_with_image_descriptions(folder: str,
     {source_file_md}'''
     if images_description_path:
         images_description_key = \
-            f'{folder}/images_descriptions/{images_description_path}'
+            f'{folder}/{images_description_folder}/{images_description_path}'
         temp_file_path = 'temp_file.json'
         s3_handler.get_object(images_description_key,
                               temp_file_path)
@@ -36,28 +40,6 @@ def get_file_with_image_descriptions(folder: str,
         user_prompt += \
             f"\nThese are the images: {images_description['images']}"
     return user_prompt
-
-
-def get_last_index_from_s3(folder_name, path, must_exist=False):
-    images_descriptions_files = s3_handler\
-        .list_objects(prefix=folder_name + path,
-                      recursive=True)
-    if not images_descriptions_files and not must_exist:
-        index = 1
-    elif not images_descriptions_files and must_exist:
-        raise Exception("Image Description Doesn't Exist")
-    else:
-        indexes = [int(f.split('/')[-1].split('.')[0].split('_')[-1])
-                   for f in images_descriptions_files]
-        index = max(indexes) + 1
-    return index
-
-
-def get_last_file_path(folder_name, dir_path, file_name):
-    index = get_last_index_from_s3(folder_name, f'{dir_path}',
-                                   must_exist=True) - 1
-    updated_file = file_name.format(index=index)
-    return updated_file
 
 
 def send_text_to_llm(prompt: str, folder: str,
@@ -76,9 +58,10 @@ def send_texts_to_llm(prompt: str, folders: List[str],
     for folder in folders:
         try:
             images_description_path = get_last_file_path(
+                s3_handler,
                 folder,
-                '/images_descriptions/',
-                'images_description_{index}.json')
+                f'/{images_description_folder}/',
+                f'{images_description_file_temp}')
         except Exception as e:
             print(e)
             images_description_path = None
@@ -106,8 +89,9 @@ async def load_images_descriptions(prompt: str, folder_name: str):
         image_name = image_path.split('/')[-1]
         images_descriptions['images'][image_name] \
             = send_image_to_llm(prompt, image_path, streaming=False)
-    index = get_last_index_from_s3(folder_name, '/images_descriptions/')
-    s3_folder = f'{folder_name}/images_descriptions'
+    index = get_last_index_from_s3(s3_handler, folder_name,
+                                   f'/{images_description_folder}/')
+    s3_folder = f'{folder_name}/{images_description_folder}'
     s3_path = f'{s3_folder}/images_description_{index}.json'
     s3_handler.put_object(s3_path,
                           json.dumps(images_descriptions).encode('utf-8'))
@@ -120,8 +104,9 @@ async def get_parsed_file(prompt: str, folder_name: str,
     if not images_description_path:
         try:
             images_description_path = get_last_file_path(
-                folder_name, '/images_descriptions/',
-                'images_description_{index}.json')
+                s3_handler,
+                folder_name, f'/{images_description_folder}/',
+                f'{images_description_file_temp}')
         except Exception as e:
             print(e)
             images_description_path = None
@@ -138,7 +123,8 @@ async def load_parsed_file(prompt: str, folder_name: str,
     if not images_description_path:
         try:
             images_description_path = get_last_file_path(
-                folder_name, '/images_descriptions/',
+                s3_handler,
+                folder_name, f'/{images_description_folder}/',
                 'images_description_{index}.json')
         except Exception as e:
             print(e)
@@ -151,7 +137,8 @@ async def load_parsed_file(prompt: str, folder_name: str,
     start_index = llm_output.find('{')
     json_str_llm_output = llm_output[start_index:]
     json_llm_output = json.loads(json_str_llm_output)
-    index = get_last_index_from_s3(folder_name, '/parsed_document/')
+    index = get_last_index_from_s3(s3_handler, folder_name,
+                                   '/parsed_document/')
     s3_path = f'{folder_name}/parsed_document/parsed_document_{index}.json'
     final_json = {
         'data': json_llm_output,
@@ -181,7 +168,8 @@ async def load_common_schema(prompt: str, folders: str):
     start_index = llm_output.find('{')
     json_str_llm_output = llm_output[start_index:]
     json_llm_output = json.loads(json_str_llm_output)
-    index = get_last_index_from_s3('common_schemas', '/common_schemas_jsons/')
+    index = get_last_index_from_s3(s3_handler,
+                                   'common_schemas', '/common_schemas_jsons/')
     s3_path = f'common_schemas/common_schemas_jsons/common_schema_{index}.json'
     final_json = {
         'schema': json_llm_output,

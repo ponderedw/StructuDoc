@@ -1,14 +1,17 @@
-from fastapi import APIRouter, UploadFile, File
+from fastapi import APIRouter, UploadFile, File, Form
 from typing import Annotated, Optional
 from include.s3_handler import S3Handler
 from include.document_parsing import DocumentParse
 from fastapi_modules.helper.helper_functions import \
     help_upload_source_file_to_s3, \
     help_upload_parsed_source_file_to_s3, help_upload_extracted_images_to_s3, \
-    main_folder_prefix, get_folder_path
+    main_folder_prefix, get_folder_path, get_last_index_from_s3, \
+    get_last_file_path
 import json
 import base64
 import re
+from fastapi_modules.common_values import images_description_file_temp, \
+    images_description_folder
 
 
 chat_router = APIRouter()
@@ -123,7 +126,7 @@ async def get_markdown_with_images(folder_path: str):
 @chat_router.get("/get_images_explanations_paths")
 async def get_images_explanations_paths(folder_path: str):
     images_descriptions_paths = s3_handler.list_objects(
-        prefix=f'{folder_path}/images_descriptions/',
+        prefix=f'{folder_path}/{images_description_folder}/',
         recursive=True)
     return [f.split('/')[-1] for f in images_descriptions_paths]
 
@@ -132,7 +135,7 @@ async def get_images_explanations_paths(folder_path: str):
 async def get_images_explanation(folder_path: str, description_path: str):
     description_json = \
         s3_handler.get_object_bytes(
-            f'{folder_path}/images_descriptions/{description_path}')
+            f'{folder_path}/{images_description_folder}/{description_path}')
     return description_json
 
 
@@ -193,3 +196,29 @@ async def get_files_list(extensions: Optional[str] = None):
     final_files_list = [file_path for file_path in files_list
                         if has_valid_extension(file_path, extensions)]
     return final_files_list
+
+
+@chat_router.post("/upload_parsed_file")
+async def upload_parsed_file(folder_name: Annotated[str, Form()],
+                             subfolder_name: Annotated[str, Form()],
+                             file_template: Annotated[str, Form()],
+                             parsed_json_file: Annotated[UploadFile, File()]):
+    index = get_last_index_from_s3(s3_handler, folder_name,
+                                   f'/{subfolder_name}/')
+    parsed_json = await parsed_json_file.read()
+    s3_folder = f'{folder_name}/{subfolder_name}'
+    s3_path = f'{s3_folder}/{file_template}_{index}.json'
+    s3_handler.put_object(s3_path,
+                          json.dumps(
+                              json.loads(parsed_json)).encode('utf-8'))
+    return s3_path
+
+
+@chat_router.get("/get_last_image_file_name")
+async def get_last_image_file_name(folder_name: str):
+    last_image_path = get_last_file_path(
+                s3_handler,
+                folder_name,
+                f'/{images_description_folder}/',
+                f'{images_description_file_temp}')
+    return last_image_path.split('/')[-1]

@@ -4,6 +4,7 @@ from helper import get_from_backend, post_to_backend, \
     get_from_backend_streaming, remove_watermark
 from st_ant_tree import st_ant_tree
 import json
+import tempfile
 
 remove_watermark()
 
@@ -111,12 +112,17 @@ with parse_image_tab:
 
     if parse_image_submitted:
         if selected_values:
+            st.session_state.images_parsing_succeeded = False
+            st.session_state.images_description = {}
             for folder in selected_values:
                 with st.expander(folder):
                     backend_method = 's3_interactions/get_all_the_images'
                     images = get_from_backend(backend_method=backend_method,
                                               folder_path=folder)
                     images = {k: v for k, v in images.items()}
+                    st.session_state.images_description[folder] = \
+                        {'prompt': prompt,
+                         'images': {}}
                     backend_mathod = \
                         'parse_data_with_llm/get_image_description'
                     for image_name, image_bytes in images.items():
@@ -126,26 +132,55 @@ with parse_image_tab:
 
                                 """,
                                     unsafe_allow_html=True)
-                        st.write_stream(get_from_backend_streaming(
-                            backend_method=backend_mathod,
-                            params={
-                                'prompt': prompt,
-                                'image_path': folder + '/images/' + image_name
-                            }
-                        )
+                        image_description = st.write_stream(
+                            get_from_backend_streaming(
+                                backend_method=backend_mathod,
+                                params={
+                                    'prompt': prompt,
+                                    'image_path': folder + '/images/'
+                                    + image_name
+                                }
+                            )
                                         )
+                        st.session_state\
+                            .images_description[folder]['images'][
+                                image_name] = image_description
+            st.session_state.images_parsing_succeeded = True
         else:
             st.warning('Please Choose At Least One Folder')
 
     if parse_image_submitted_save:
         if selected_values:
-            backend_method = 'parse_data_with_llm/load_images_descriptions'
-            for folder in selected_values:
-                data = post_to_backend(backend_method=backend_method,
-                                       params={'prompt': prompt,
-                                               'folder_name': folder})
-                st.write(f'Load is finished for {folder}')
-                st.write(data)
+            if hasattr(st.session_state, 'images_parsing_succeeded') \
+               and st.session_state.images_parsing_succeeded:
+                st.write(st.session_state.images_description)
+                backend_method = 's3_interactions/upload_parsed_file'
+                for folder, desc in st.session_state\
+                        .images_description.items():
+                    with tempfile.NamedTemporaryFile(mode="w+", suffix=".json",
+                                                     delete=False) as tmpfile:
+                        json.dump(desc, tmpfile)
+                        tmpfile.seek(0)
+                        data = post_to_backend(backend_method=backend_method,
+                                               data={
+                                                   'folder_name': folder,
+                                                   'subfolder_name':
+                                                   'images_descriptions',
+                                                   'file_template':
+                                                   'images_description'
+                                                    },
+                                               files={'parsed_json_file':
+                                                      tmpfile})
+                        st.write(f'Load is finished for {folder}')
+                        st.write(data)
+            else:
+                backend_method = 'parse_data_with_llm/load_images_descriptions'
+                for folder in selected_values:
+                    data = post_to_backend(backend_method=backend_method,
+                                           params={'prompt': prompt,
+                                                   'folder_name': folder})
+                    st.write(f'Load is finished for {folder}')
+                    st.write(data)
         else:
             st.warning('Please Choose At Least One Folder')
 
@@ -163,6 +198,8 @@ with parse_file_tab:
 
     if parse_file_submitted:
         if selected_values:
+            st.session_state.file_parsing_succeeded = False
+            st.session_state.file_description = {}
             for folder in selected_values:
                 with st.expander(folder):
                     backend_method = \
@@ -183,28 +220,62 @@ with parse_file_tab:
                             }
                         )
                                     )
-                    st.json(json.loads(parsed_json_stream[
-                        parsed_json_stream.find('{'):]))
+                    parsed_json = json.loads(parsed_json_stream[
+                        parsed_json_stream.find('{'):])
+                    st.json(parsed_json)
+                    backend_method = \
+                        's3_interactions/get_last_image_file_name'
+                    file_name = get_from_backend(backend_method=backend_method,
+                                                 folder_name=folder)
+                    st.session_state.file_description[folder] = {
+                        'data': parsed_json,
+                        'prompt': prompt,
+                        'images_description_path': file_name
+                    }
+            st.session_state.file_parsing_succeeded = True
         else:
             st.warning('Please Choose At Least One Folder')
 
     if parse_file_submitted_save:
         if selected_values:
-            for folder in selected_values:
-                backend_method = \
-                        's3_interactions/get_images_explanations_paths'
-                images_decriptions_paths = \
-                    images = get_from_backend(
-                        backend_method=backend_method,
-                        folder_path=folder)
-                if not images_decriptions_paths:
-                    st.write("There aren't any images descriptions yet")
-                backend_method = 'parse_data_with_llm/load_parsed_file'
-                data = post_to_backend(backend_method=backend_method,
-                                       params={'prompt': prompt,
-                                               'folder_name': folder})
-                st.write(f'Load is finished for {folder}')
-                st.write(data)
+            if hasattr(st.session_state, 'file_parsing_succeeded') \
+               and st.session_state.file_parsing_succeeded:
+                st.write(st.session_state.file_description)
+                backend_method = 's3_interactions/upload_parsed_file'
+                for folder, desc in st.session_state\
+                        .file_description.items():
+                    with tempfile.NamedTemporaryFile(mode="w+", suffix=".json",
+                                                     delete=False) as tmpfile:
+                        json.dump(desc, tmpfile)
+                        tmpfile.seek(0)
+                        data = post_to_backend(backend_method=backend_method,
+                                               data={
+                                                   'folder_name': folder,
+                                                   'subfolder_name':
+                                                   'parsed_document',
+                                                   'file_template':
+                                                   'parsed_document'
+                                                    },
+                                               files={'parsed_json_file':
+                                                      tmpfile})
+                        st.write(f'Load is finished for {folder}')
+                        st.write(data)
+            else:
+                for folder in selected_values:
+                    backend_method = \
+                            's3_interactions/get_images_explanations_paths'
+                    images_decriptions_paths = \
+                        images = get_from_backend(
+                            backend_method=backend_method,
+                            folder_path=folder)
+                    if not images_decriptions_paths:
+                        st.write("There aren't any images descriptions yet")
+                    backend_method = 'parse_data_with_llm/load_parsed_file'
+                    data = post_to_backend(backend_method=backend_method,
+                                           params={'prompt': prompt,
+                                                   'folder_name': folder})
+                    st.write(f'Load is finished for {folder}')
+                    st.write(data)
         else:
             st.warning('Please Choose At Least One Folder')
 
@@ -223,6 +294,7 @@ with find_common_schema_tab:
 
     if find_common_schema_submitted:
         if selected_values:
+            st.session_state.common_schema_succeeded = False
             backend_method = 'parse_data_with_llm/get_common_schema'
             parsed_json_stream = st.write_stream(
                 get_from_backend_streaming(
@@ -233,19 +305,48 @@ with find_common_schema_tab:
                     }
                 )
                             )
-            st.json(json.loads(parsed_json_stream[
-                        parsed_json_stream.find('{'):]))
+            parsed_common_json = json.loads(parsed_json_stream[
+                        parsed_json_stream.find('{'):])
+            st.json(parsed_common_json)
+            st.session_state.common_schema = {
+                'prompt': prompt,
+                'schema': parsed_common_json,
+                'files': selected_values,
+            }
+            st.session_state.common_schema_succeeded = True
         else:
             st.warning('Please Choose At Least One Folder')
 
     if find_common_schema_submitted_save:
         if selected_values:
-            backend_method = 'parse_data_with_llm/load_common_schema'
-            data = post_to_backend(backend_method=backend_method,
-                                   params={'prompt': prompt,
-                                           'folders': ','.join(selected_values)
-                                           })
-            st.write(data)
+            if hasattr(st.session_state, 'common_schema_succeeded') \
+               and st.session_state.common_schema_succeeded:
+                st.write(st.session_state.common_schema)
+                backend_method = 's3_interactions/upload_parsed_file'
+                with tempfile.NamedTemporaryFile(mode="w+", suffix=".json",
+                                                 delete=False) as tmpfile:
+                    json.dump(st.session_state.common_schema, tmpfile)
+                    tmpfile.seek(0)
+                    data = post_to_backend(backend_method=backend_method,
+                                           data={
+                                            'folder_name': 'common_schemas',
+                                            'subfolder_name':
+                                            'common_schemas_jsons',
+                                            'file_template':
+                                            'common_schema'
+                                                },
+                                           files={'parsed_json_file':
+                                                  tmpfile})
+                    st.write('Load is finished')
+                    st.write(data)
+            else:
+                backend_method = 'parse_data_with_llm/load_common_schema'
+                data = post_to_backend(backend_method=backend_method,
+                                       params={'prompt': prompt,
+                                               'folders': ','.join(
+                                                   selected_values)
+                                               })
+                st.write(data)
         else:
             st.warning('Please Choose At Least One Folder')
 
