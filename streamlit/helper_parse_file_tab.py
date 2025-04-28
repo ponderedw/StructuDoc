@@ -33,18 +33,19 @@ def get_parse_file_tab(selected_values):
                             st.write(
                                 "There aren't any images descriptions yet")
                         backend_method = 'parse_data_with_llm/get_parsed_file'
-                        parsed_json_stream = st.write_stream(
-                            get_from_backend_streaming(
-                                backend_method=backend_method,
-                                params={
-                                    'prompt': prompt,
-                                    'folder_name': folder
-                                }
-                            )
-                                        )
-                        parsed_json = json.loads(parsed_json_stream[
-                            parsed_json_stream.find('{'):])
-                        st.json(parsed_json)
+                        with st.empty():
+                            parsed_json_stream = st.write_stream(
+                                get_from_backend_streaming(
+                                    backend_method=backend_method,
+                                    params={
+                                        'prompt': prompt,
+                                        'folder_name': folder
+                                    }
+                                )
+                                            )
+                            parsed_json = json.loads(parsed_json_stream[
+                                parsed_json_stream.find('{'):])
+                            st.json(parsed_json)
                         backend_method = \
                             's3_interactions/get_last_image_file_name'
                         file_name = get_from_backend(

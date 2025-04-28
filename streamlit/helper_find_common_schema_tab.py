@@ -22,18 +22,19 @@ def get_find_common_schema_tab(selected_values):
         if selected_values:
             st.session_state.common_schema_succeeded = False
             backend_method = 'parse_data_with_llm/get_common_schema'
-            parsed_json_stream = st.write_stream(
-                get_from_backend_streaming(
-                    backend_method=backend_method,
-                    params={
-                        'prompt': prompt,
-                        'folders': ','.join(selected_values)
-                    }
-                )
-                            )
-            parsed_common_json = json.loads(parsed_json_stream[
-                        parsed_json_stream.find('{'):])
-            st.json(parsed_common_json)
+            with st.empty():
+                parsed_json_stream = st.write_stream(
+                    get_from_backend_streaming(
+                        backend_method=backend_method,
+                        params={
+                            'prompt': prompt,
+                            'folders': ','.join(selected_values)
+                        }
+                    )
+                                )
+                parsed_common_json = json.loads(parsed_json_stream[
+                            parsed_json_stream.find('{'):])
+                st.json(parsed_common_json)
             st.session_state.common_schema = {
                 'prompt': prompt,
                 'schema': parsed_common_json,
