@@ -22,8 +22,8 @@ def get_parse_file_tab(selected_values):
             st.session_state.file_parsing_succeeded = False
             st.session_state.file_description = {}
             for folder in selected_values:
-                try:
-                    with st.expander(folder):
+                with st.expander(folder):
+                    try:
                         backend_method = \
                             's3_interactions/get_images_explanations_paths'
                         images_decriptions_paths = get_from_backend(
@@ -55,8 +55,8 @@ def get_parse_file_tab(selected_values):
                             'prompt': prompt,
                             'images_description_path': file_name
                         }
-                except Exception as e:
-                    st.error(e)
+                    except Exception as e:
+                        st.error(e)
             st.session_state.file_parsing_succeeded = True
         else:
             st.warning('Please Choose At Least One Folder')
