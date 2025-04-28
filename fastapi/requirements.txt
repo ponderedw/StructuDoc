@@ -8,3 +8,4 @@ langchain
 langchain_aws
 langchain-anthropic
 itsdangerous==2.2.0
+pdf2docx

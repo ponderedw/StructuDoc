@@ -2,6 +2,7 @@ import subprocess
 import os
 from docx import Document
 import shutil
+from pdf2docx import Converter
 
 
 class DocumentParse:
@@ -20,6 +21,12 @@ class DocumentParse:
             shutil.rmtree(folder_path)  # Remove the folder and its contents
         os.makedirs(folder_path)  # Create the folder again
         print(f"Folder '{folder_path}' has been recreated.")
+
+    @staticmethod
+    def convert_pdf_to_word(pdf_local_path, docx_local_path):
+        cv = Converter(pdf_local_path)
+        cv.convert(docx_local_path, start=0, end=None)
+        cv.close()
 
     def convert_word_to_markdown(self):
         command = [

@@ -14,7 +14,7 @@ option = st.selectbox(
 if option == 'Upload New File':
     with st.form("user_form"):
         file_to_upload = st.file_uploader("Upload File",
-                                          type=['docx'])
+                                          type=['docx', 'pdf'])
         path = st.text_input("S3 Path")
         submitted = st.form_submit_button("Submit")
         fine_to_delete = False
@@ -48,7 +48,7 @@ else:
     with st.form("user_form"):
         backend_method = 's3_interactions/get_files_list'
         paths = get_from_backend(backend_method=backend_method,
-                                 extensions='.docx')
+                                 extensions='.docx,.pdf')
         tree = build_tree(paths)['children']
         selected_values = st_ant_tree(
                 treeData=tree,

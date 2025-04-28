@@ -1,6 +1,7 @@
 .venv
 .env
 *.docx
+*.pdf
 fastapi/llm_output.txt
 fastapi/images_english.json
 fastapi/converted_document.md

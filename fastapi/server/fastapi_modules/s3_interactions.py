@@ -53,6 +53,10 @@ async def upload_source_file_to_s3(file: Annotated[UploadFile, File()],
         help_upload_source_file_to_s3(s3_handler, file_name, file_content,
                                       path)
     upload_metadata_json(file_key, folder + '/metadata.json')
+    if file_name.split('.')[-1] == 'pdf':
+        word_tmp_file_path = temp_file_path.rsplit('.', 1)[0] + '.pdf'
+        DocumentParse.convert_pdf_to_word(temp_file_path, word_tmp_file_path)
+        temp_file_path = word_tmp_file_path
     document_parse = DocumentParse(source_document_local_path=temp_file_path,
                                    image_folder='images')
     help_upload_parsed_source_file_to_s3(s3_handler, document_parse, folder)
@@ -65,12 +69,16 @@ async def parse_s3_path(path: str):
     temp_file_path = s3_handler\
         .get_object(path,
                     local_filename='temp_file')
-    document_parse = DocumentParse(source_document_local_path=temp_file_path,
-                                   image_folder='images')
     folder = get_folder_path(path.split('/')[-1].split('.')[0],
                              path.rsplit('/', 1)[0] if '/' in path
                              else '')
     upload_metadata_json(path, folder + '/metadata.json')
+    if path.split('.')[-1] == 'pdf':
+        word_tmp_file_path = temp_file_path.rsplit('.', 1)[0] + '.pdf'
+        DocumentParse.convert_pdf_to_word(temp_file_path, word_tmp_file_path)
+        temp_file_path = word_tmp_file_path
+    document_parse = DocumentParse(source_document_local_path=temp_file_path,
+                                   image_folder='images')
     help_upload_parsed_source_file_to_s3(s3_handler, document_parse, folder)
     help_upload_extracted_images_to_s3(s3_handler, document_parse, folder)
     return {"filename": folder, "message": "File parsed successfully"}
