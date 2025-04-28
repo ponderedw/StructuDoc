@@ -46,13 +46,14 @@ class DocumentParse:
         DocumentParse.recreate_folder(self.images_folder)
         for rel in doc.part.rels:
             if 'image' in doc.part.rels[rel].target_ref:
-                image_part = doc.part.rels[rel].target_part
-                image_data = image_part.blob
-                image_name = image_part._partname.split('/')[-1]
-                image_path = os.path.join(self.images_folder,
-                                          image_name)
-                with open(image_path, 'wb') as img_file:
-                    img_file.write(image_data)
+                if not doc.part.rels[rel].is_external:
+                    image_part = doc.part.rels[rel].target_part
+                    image_data = image_part.blob
+                    image_name = image_part._partname.split('/')[-1]
+                    image_path = os.path.join(self.images_folder,
+                                              image_name)
+                    with open(image_path, 'wb') as img_file:
+                        img_file.write(image_data)
 
     def extract_images_from_file(self):
         if self.source_document_extension == 'docx':
