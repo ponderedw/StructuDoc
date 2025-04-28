@@ -27,7 +27,7 @@ def get_view_files_tab(selected_values):
                     for image_name, image_bytes in images.items():
                         st.markdown(f"""## {image_name}
 
-    ![{image_name}](data:image/{image_name.split('.')[-1]};base64,{image_bytes})
+![{image_name}](data:image/{image_name.split('.')[-1]};base64,{image_bytes})
 
                                     """,
                                     unsafe_allow_html=True)
