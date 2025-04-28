@@ -22,36 +22,41 @@ def get_parse_file_tab(selected_values):
             st.session_state.file_parsing_succeeded = False
             st.session_state.file_description = {}
             for folder in selected_values:
-                with st.expander(folder):
-                    backend_method = \
-                        's3_interactions/get_images_explanations_paths'
-                    images_decriptions_paths = get_from_backend(
+                try:
+                    with st.expander(folder):
+                        backend_method = \
+                            's3_interactions/get_images_explanations_paths'
+                        images_decriptions_paths = get_from_backend(
+                                backend_method=backend_method,
+                                folder_path=folder)
+                        if not images_decriptions_paths:
+                            st.write(
+                                "There aren't any images descriptions yet")
+                        backend_method = 'parse_data_with_llm/get_parsed_file'
+                        parsed_json_stream = st.write_stream(
+                            get_from_backend_streaming(
+                                backend_method=backend_method,
+                                params={
+                                    'prompt': prompt,
+                                    'folder_name': folder
+                                }
+                            )
+                                        )
+                        parsed_json = json.loads(parsed_json_stream[
+                            parsed_json_stream.find('{'):])
+                        st.json(parsed_json)
+                        backend_method = \
+                            's3_interactions/get_last_image_file_name'
+                        file_name = get_from_backend(
                             backend_method=backend_method,
-                            folder_path=folder)
-                    if not images_decriptions_paths:
-                        st.write("There aren't any images descriptions yet")
-                    backend_method = 'parse_data_with_llm/get_parsed_file'
-                    parsed_json_stream = st.write_stream(
-                        get_from_backend_streaming(
-                            backend_method=backend_method,
-                            params={
-                                'prompt': prompt,
-                                'folder_name': folder
-                            }
-                        )
-                                    )
-                    parsed_json = json.loads(parsed_json_stream[
-                        parsed_json_stream.find('{'):])
-                    st.json(parsed_json)
-                    backend_method = \
-                        's3_interactions/get_last_image_file_name'
-                    file_name = get_from_backend(backend_method=backend_method,
-                                                 folder_name=folder)
-                    st.session_state.file_description[folder] = {
-                        'data': parsed_json,
-                        'prompt': prompt,
-                        'images_description_path': file_name
-                    }
+                            folder_name=folder)
+                        st.session_state.file_description[folder] = {
+                            'data': parsed_json,
+                            'prompt': prompt,
+                            'images_description_path': file_name
+                        }
+                except Exception as e:
+                    st.error(e)
             st.session_state.file_parsing_succeeded = True
         else:
             st.warning('Please Choose At Least One Folder')
@@ -82,18 +87,23 @@ def get_parse_file_tab(selected_values):
                         st.write(data)
             else:
                 for folder in selected_values:
-                    backend_method = \
-                            's3_interactions/get_images_explanations_paths'
-                    images_decriptions_paths = get_from_backend(
-                            backend_method=backend_method,
-                            folder_path=folder)
-                    if not images_decriptions_paths:
-                        st.write("There aren't any images descriptions yet")
-                    backend_method = 'parse_data_with_llm/load_parsed_file'
-                    data = post_to_backend(backend_method=backend_method,
-                                           params={'prompt': prompt,
-                                                   'folder_name': folder})
-                    st.write(f'Load is finished for {folder}')
-                    st.write(data)
+                    try:
+                        backend_method = \
+                                's3_interactions/get_images_explanations_paths'
+                        images_decriptions_paths = get_from_backend(
+                                backend_method=backend_method,
+                                folder_path=folder)
+                        if not images_decriptions_paths:
+                            st.write(
+                                "There aren't any images descriptions yet")
+                        backend_method = 'parse_data_with_llm/load_parsed_file'
+                        data = post_to_backend(backend_method=backend_method,
+                                               params={'prompt': prompt,
+                                                       'folder_name': folder})
+                        st.write(f'Load is finished for {folder}')
+                        st.write(data)
+                    except Exception as e:
+                        st.write(f'Load failed for {folder}')
+                        st.error(e)
         else:
             st.warning('Please Choose At Least One Folder')
