@@ -8,9 +8,23 @@ import tempfile
 
 remove_watermark()
 
+
+def sort_by_title(data):
+    if not isinstance(data, list):
+        return data
+    result = []
+    for item in data:
+        new_item = item.copy()
+        if 'children' in new_item and isinstance(new_item['children'], list):
+            new_item['children'] = sort_by_title(new_item['children'])
+        result.append(new_item)
+    return sorted(result, key=lambda x: x.get('title', '').lower())
+
+
 paths = get_from_backend(backend_method='s3_interactions/get_all_the_folders')
 paths = [folder['folder_path'] for folder in paths]
 tree = build_tree(paths)['children']
+tree = sort_by_title(tree)
 
 selected_values = []
 with st.sidebar.container():
