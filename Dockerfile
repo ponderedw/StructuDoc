@@ -1,4 +1,4 @@
-FROM hipposysai/base_structudoc:latest
+FROM pondered/base_structudoc:latest
 
 COPY ./fastapi ./
 COPY streamlit ./streamlit

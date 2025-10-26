@@ -4,7 +4,7 @@ local:
 
 
 local_all:
-  docker build -f base.Dockerfile . -t hipposysai/base_structudoc:latest
+  docker build -f base.Dockerfile . -t pondered/base_structudoc:latest
   docker compose down
   docker compose up --build
 
@@ -16,7 +16,7 @@ prod:
 
 
 prod_image:
-  docker build -f base.Dockerfile . -t hipposysai/base_structudoc:latest
-  docker push hipposysai/base_structudoc:latest
-  docker build . -t hipposysai/structudoc:latest
-  docker push hipposysai/structudoc:latest
+  docker build -f base.Dockerfile . -t pondered/base_structudoc:latest
+  docker push pondered/base_structudoc:latest
+  docker build . -t pondered/structudoc:latest
+  docker push pondered/structudoc:latest
