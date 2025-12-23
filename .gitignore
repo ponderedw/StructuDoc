@@ -1,6 +1,8 @@
 .venv
 .env
 *.docx
+!example_files/artificial_intelligence_expanded_with_diagrams.docx
+!example_files/artificial_intelligence_followup_report.docx
 *.pdf
 fastapi/llm_output.txt
 fastapi/images_english.json

@@ -63,7 +63,7 @@ class S3Handler:
             } | kwargs
         objects = self.s3_client.list_objects(**parameters)
         if self.s3_type == 'minio':
-            return [o._object_name for o in objects]
+            return [o.object_name for o in objects]
         elif self.s3_type == 's3':
             return [o['Key'] for o in objects.get('Contents', [])]
         return objects
